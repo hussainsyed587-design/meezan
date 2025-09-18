@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "585011593372",
+    "project_id": "meezan-15c88",
+    "storage_bucket": "meezan-15c88.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585011593372:android:8b13101d4c51a22c9ead59",
+        "android_client_info": {
+          "package_name": "com.meezan.prayer_quran"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEZ6sPozBENTAJvRsbncUSpVvzJVQsjjs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

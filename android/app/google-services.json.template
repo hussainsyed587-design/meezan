@@ -1,0 +1,44 @@
+{
+  "_comment": "This is a template for google-services.json",
+  "_instructions": [
+    "1. Go to Firebase Console: https://console.firebase.google.com/",
+    "2. Create a new project for Meezan app",
+    "3. Add Android app with package name: com.meezan.prayer_quran",
+    "4. Download the actual google-services.json file",
+    "5. Replace this template file with the real one",
+    "6. Never commit the real file to version control"
+  ],
+  "project_info": {
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "firebase_url": "https://YOUR_PROJECT_ID.firebaseio.com",
+    "project_id": "YOUR_PROJECT_ID",
+    "storage_bucket": "YOUR_PROJECT_ID.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID",
+        "android_client_info": {
+          "package_name": "com.meezan.prayer_quran"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "YOUR_CLIENT_ID",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "YOUR_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
