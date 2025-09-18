@@ -38,8 +38,7 @@ class MeezanApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => QuranProvider()),
         ChangeNotifierProvider(create: (_) => AudioPlayerProvider()),
         ChangeNotifierProvider(create: (_) => DuasProvider()),
-        Provider<PrayerStatisticsProvider>(create: (_) => PrayerStatisticsProvider()),
-    ),
+        ChangeNotifierProvider(create: (_) => PrayerStatisticsProvider()),
       ],
       child: Consumer<UserPreferencesProvider>(
         builder: (context, preferencesProvider, child) {

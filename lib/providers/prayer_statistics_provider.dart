@@ -291,13 +291,7 @@ class PrayerStatisticsProvider extends ChangeNotifier {
       }).toList();
       
       if (recentRecords.isNotEmpty) {
-        final completed = recentRecords.where((r) => 
-          r.status == PrayerStatus.completed ||
-          r.status == PrayerStatus.onTime ||
-          r.status == PrayerStatus.early ||
-          r.status == PrayerStatus.late
-        ).length;
-        
+        final completed = recentRecords.where((r) => r.status == PrayerStatus.completed).length;
         trends[prayer] = (completed / recentRecords.length) * 100;
       } else {
         trends[prayer] = 0.0;

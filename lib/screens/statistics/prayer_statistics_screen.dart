@@ -8,14 +8,26 @@ import '../../widgets/prayer_completion_chart.dart';
 import '../../widgets/prayer_trends_chart.dart';
 import '../../widgets/statistics_card.dart';
 
-class PrayerStatisticsScreen extends StatefulWidget {
+class PrayerStatisticsScreen extends StatelessWidget {
   const PrayerStatisticsScreen({super.key});
 
   @override
-  State<PrayerStatisticsScreen> createState() => _PrayerStatisticsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => PrayerStatisticsProvider(),
+      child: const _PrayerStatisticsContent(),
+    );
+  }
 }
 
-class _PrayerStatisticsScreenState extends State<PrayerStatisticsScreen> with TickerProviderStateMixin {
+class _PrayerStatisticsContent extends StatefulWidget {
+  const _PrayerStatisticsContent();
+
+  @override
+  State<_PrayerStatisticsContent> createState() => _PrayerStatisticsContentState();
+}
+
+class _PrayerStatisticsContentState extends State<_PrayerStatisticsContent> with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override

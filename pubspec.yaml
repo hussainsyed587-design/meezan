@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ^3.9.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -40,20 +40,20 @@ dependencies:
   dio: ^5.3.2
   
   # Location & Compass
-  geolocator: ^10.1.0
+  geolocator: ^14.0.2
   flutter_compass: ^0.8.0
-  geocoding: ^2.1.1
+  geocoding: ^4.0.0
   
   # Audio & Media
-  audioplayers: ^5.2.1
+  audioplayers: ^6.5.1
   
   # Storage & State
   shared_preferences: ^2.2.2
   provider: ^6.1.1
   
   # Time & Date
-  intl: ^0.19.0
-  timezone: ^0.9.2
+  intl: ^0.20.2
+  timezone: ^0.10.1
   hijri: ^3.0.0
   
   # Notifications
@@ -63,13 +63,13 @@ dependencies:
   google_maps_flutter: ^2.5.0
   
   # Charts & Analytics
-  fl_chart: ^0.65.0
+  fl_chart: ^1.1.1
   
   # Calendar
   table_calendar: ^3.0.9
   
   # Permissions
-  permission_handler: ^11.0.1
+  permission_handler: ^12.0.1
   
   # UI Components
   flutter_svg: ^2.0.9
@@ -81,10 +81,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   
   # App icon generation
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
 
 # App icon configuration
 flutter_launcher_icons:

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
+import '../../models/prayer_statistics.dart';
+import '../../providers/prayer_statistics_provider.dart';
 
 class NamazTrackerScreen extends StatefulWidget {
   const NamazTrackerScreen({super.key});
@@ -13,46 +16,21 @@ class NamazTrackerScreen extends StatefulWidget {
 class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
   late DateTime _selectedDay;
   late DateTime _focusedDay;
-  
-  // Prayer tracking data - In a real app, this would be stored in a database
-  final Map<DateTime, Set<Prayer>> _prayerRecords = {};
-  
-  final List<Prayer> _prayers = [
-    Prayer('Fajr', Icons.wb_twilight, AppColors.info),
-    Prayer('Dhuhr', Icons.wb_sunny, AppColors.gold),
-    Prayer('Asr', Icons.wb_sunny_outlined, AppColors.arabicAccent),
-    Prayer('Maghrib', Icons.wb_twighlight, AppColors.ramadanBlue),
-    Prayer('Isha', Icons.nightlight, AppColors.textPrimary),
-  ];
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
     _focusedDay = DateTime.now();
-    _initializeSampleData();
-  }
-
-  void _initializeSampleData() {
-    // Add some sample data for demonstration
-    final today = DateTime.now();
-    final yesterday = today.subtract(const Duration(days: 1));
-    
-    _prayerRecords[yesterday] = {
-      _prayers[0], // Fajr
-      _prayers[1], // Dhuhr
-      _prayers[2], // Asr
-      _prayers[3], // Maghrib
-    };
-    
-    _prayerRecords[today] = {
-      _prayers[0], // Fajr
-      _prayers[1], // Dhuhr
-    };
+    // Load initial data
+    Provider.of<PrayerStatisticsProvider>(context, listen: false).setPeriod(StatisticsPeriod.thisMonth);
   }
 
   @override
   Widget build(BuildContext context) {
+    final prayerStatsProvider = Provider.of<PrayerStatisticsProvider>(context);
+    final dailyStats = prayerStatsProvider.getDailyStatsForPeriod(StatisticsPeriod.thisMonth);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -67,9 +45,9 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
               title: Text(
                 'Namaz Tracker',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: AppColors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               background: Container(
                 decoration: const BoxDecoration(
@@ -90,7 +68,7 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
             ),
             actions: [
               IconButton(
-                onPressed: _showMonthlyStats,
+                onPressed: () => _showMonthlyStats(prayerStatsProvider),
                 icon: const Icon(Icons.bar_chart),
                 tooltip: 'Monthly Statistics',
               ),
@@ -104,17 +82,17 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Calendar
-                  _buildCalendar(),
+                  _buildCalendar(prayerStatsProvider, dailyStats),
                   
                   const SizedBox(height: 24),
                   
                   // Selected Day Prayer Tracking
-                  _buildDayPrayerTracking(),
+                  _buildDayPrayerTracking(prayerStatsProvider),
                   
                   const SizedBox(height: 24),
                   
                   // Monthly Progress
-                  _buildMonthlyProgress(),
+                  _buildMonthlyProgress(prayerStatsProvider),
                   
                   const SizedBox(height: 100), // Bottom spacing
                 ],
@@ -126,7 +104,7 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
     );
   }
 
-  Widget _buildCalendar() {
+  Widget _buildCalendar(PrayerStatisticsProvider prayerStatsProvider, List<DailyPrayerStats> dailyStats) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -136,16 +114,20 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
             Text(
               'Prayer Calendar',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
-            TableCalendar<Prayer>(
+            TableCalendar(
               firstDay: DateTime.utc(2020, 1, 1),
               lastDay: DateTime.utc(2030, 12, 31),
               focusedDay: _focusedDay,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              eventLoader: (day) => (_prayerRecords[_normalizeDate(day)] ?? <Prayer>{}).toList(),
+              eventLoader: (day) {
+                final normalizedDate = _normalizeDate(day);
+                final dayStats = dailyStats.firstWhere((ds) => isSameDay(ds.date, normalizedDate), orElse: () => DailyPrayerStats.fromRecords(normalizedDate, []));
+                return dayStats.prayers.values.where((pr) => pr?.status == PrayerStatus.completed).toList();
+              },
               calendarFormat: CalendarFormat.month,
               startingDayOfWeek: StartingDayOfWeek.monday,
               calendarStyle: CalendarStyle(
@@ -182,6 +164,7 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
               },
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
+                prayerStatsProvider.setPeriod(StatisticsPeriod.thisMonth);
               },
             ),
           ],
@@ -190,11 +173,13 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
     );
   }
 
-  Widget _buildDayPrayerTracking() {
+  Widget _buildDayPrayerTracking(PrayerStatisticsProvider prayerStatsProvider) {
     final selectedDateNormalized = _normalizeDate(_selectedDay);
-    final completedPrayers = _prayerRecords[selectedDateNormalized] ?? {};
+    final dayRecords = prayerStatsProvider.getRecordsForDate(selectedDateNormalized);
+    final completedPrayers = dayRecords.where((r) => r.status == PrayerStatus.completed).toList();
     final isToday = isSameDay(_selectedDay, DateTime.now());
     final isFuture = _selectedDay.isAfter(DateTime.now());
+    const prayerNames = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
     return Card(
       child: Padding(
@@ -212,17 +197,16 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    isToday 
+                    isToday
                         ? 'Today\'s Prayers'
                         : 'Prayers for ${DateFormat('MMM d, y').format(_selectedDay)}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
               ],
             ),
-            
             if (isFuture) ...[
               const SizedBox(height: 16),
               Container(
@@ -245,8 +229,6 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
               ),
             ] else ...[
               const SizedBox(height: 20),
-              
-              // Prayer completion progress
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -264,16 +246,16 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                     Text(
                       '${completedPrayers.length}/5',
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: AppColors.primaryGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Prayers Completed',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                            color: AppColors.textSecondary,
+                          ),
                     ),
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
@@ -284,35 +266,34 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                   ],
                 ),
               ),
-              
               const SizedBox(height: 20),
-              
-              // Individual prayer checkboxes
-              ..._prayers.map((prayer) {
-                final isCompleted = completedPrayers.contains(prayer);
+              ...prayerNames.map((prayerName) {
+                final record = dayRecords.firstWhere((r) => r.prayerName == prayerName, orElse: () => PrayerRecord(id: '', prayerName: prayerName, scheduledTime: selectedDateNormalized, status: PrayerStatus.pending, createdAt: DateTime.now()));
+                final isCompleted = record.status == PrayerStatus.completed;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: Card(
                     elevation: 1,
                     child: CheckboxListTile(
                       value: isCompleted,
-                      onChanged: (value) => _togglePrayer(prayer, value ?? false),
+                      onChanged: (value) {
+                        if (value == true) {
+                          prayerStatsProvider.markPrayerCompleted(prayerName, selectedDateNormalized);
+                        } else {
+                          prayerStatsProvider.markPrayerMissed(prayerName, selectedDateNormalized);
+                        }
+                      },
                       title: Row(
                         children: [
-                          Icon(
-                            prayer.icon,
-                            color: prayer.color,
-                            size: 24,
-                          ),
                           const SizedBox(width: 12),
                           Text(
-                            prayer.name,
+                            prayerName,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              decoration: isCompleted 
-                                  ? TextDecoration.lineThrough 
-                                  : TextDecoration.none,
-                            ),
+                                  fontWeight: FontWeight.w600,
+                                  decoration: isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
                           ),
                         ],
                       ),
@@ -329,24 +310,11 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
     );
   }
 
-  Widget _buildMonthlyProgress() {
-    final now = DateTime.now();
-    final currentMonth = DateTime(now.year, now.month);
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    
-    int totalPrayers = 0;
-    int completedPrayers = 0;
-    
-    for (int day = 1; day <= daysInMonth; day++) {
-      final date = DateTime(now.year, now.month, day);
-      if (date.isAfter(now)) break; // Don't count future days
-      
-      totalPrayers += 5; // 5 prayers per day
-      final dayRecords = _prayerRecords[_normalizeDate(date)] ?? {};
-      completedPrayers += dayRecords.length;
-    }
-    
-    final completionRate = totalPrayers > 0 ? (completedPrayers / totalPrayers) * 100 : 0.0;
+  Widget _buildMonthlyProgress(PrayerStatisticsProvider prayerStatsProvider) {
+    final stats = prayerStatsProvider.currentStatistics;
+    final completionRate = stats?.completionRate ?? 0.0;
+    final completedPrayers = stats?.completedPrayers ?? 0;
+    final totalPrayers = stats?.totalPrayers ?? 0;
 
     return Card(
       child: Padding(
@@ -365,13 +333,12 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                 Text(
                   'This Month\'s Progress',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
             Row(
               children: [
                 Expanded(
@@ -393,10 +360,7 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                 ),
               ],
             ),
-            
             const SizedBox(height: 20),
-            
-            // Monthly completion bar
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -414,11 +378,11 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       Text(
-                        '${(completionRate).toStringAsFixed(0)}%',
+                        '${completionRate.toStringAsFixed(0)}%',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        ),
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryGreen,
+                            ),
                       ),
                     ],
                   ),
@@ -452,16 +416,16 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+                  color: AppColors.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -469,23 +433,7 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
     );
   }
 
-  void _togglePrayer(Prayer prayer, bool isCompleted) {
-    setState(() {
-      final selectedDateNormalized = _normalizeDate(_selectedDay);
-      
-      if (!_prayerRecords.containsKey(selectedDateNormalized)) {
-        _prayerRecords[selectedDateNormalized] = <Prayer>{};
-      }
-      
-      if (isCompleted) {
-        _prayerRecords[selectedDateNormalized]!.add(prayer);
-      } else {
-        _prayerRecords[selectedDateNormalized]!.remove(prayer);
-      }
-    });
-  }
-
-  void _showMonthlyStats() {
+  void _showMonthlyStats(PrayerStatisticsProvider prayerStatsProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -494,7 +442,6 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Add detailed monthly statistics here
               Text(
                 'Detailed statistics will be implemented here.',
                 style: Theme.of(context).textTheme.bodyMedium,
@@ -515,20 +462,4 @@ class _NamazTrackerScreenState extends State<NamazTrackerScreen> {
   DateTime _normalizeDate(DateTime date) {
     return DateTime(date.year, date.month, date.day);
   }
-}
-
-class Prayer {
-  final String name;
-  final IconData icon;
-  final Color color;
-
-  Prayer(this.name, this.icon, this.color);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Prayer && runtimeType == other.runtimeType && name == other.name;
-
-  @override
-  int get hashCode => name.hashCode;
 }
